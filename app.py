@@ -1,280 +1,161 @@
-import os
-from flask import Flask, render_template_string, redirect, request
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'taskora_secret_key'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-
-# ---------------- DATABASE ----------------
-
+# ================= MODELS =================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(200))
-    plan = db.Column(db.String(20), default="Free")  # Free, Premium, Lifetime
-    streak = db.Column(db.Integer, default=0)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    is_premium = db.Column(db.Boolean, default=False)
+    
+    # Premium Feature: Streak Tracking
+    current_streak = db.Column(db.Integer, default=0)
+    last_login_date = db.Column(db.Date, nullable=True)
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200))
-    due_date = db.Column(db.String(50))
-    due_time = db.Column(db.String(20))
-    priority = db.Column(db.String(20))
-    category = db.Column(db.String(50))
-    focus_minutes = db.Column(db.Integer)
-    status = db.Column(db.String(20), default="Pending")
-    created_date = db.Column(db.String(50))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    due_date = db.Column(db.Date, nullable=True)
+    priority = db.Column(db.String(50), default='Normal') # High, Normal, Low
+    category = db.Column(db.String(100), nullable=True)
+    is_completed = db.Column(db.Boolean, default=False)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---------------- HOME ----------------
+# ================= ROUTES =================
 
 @app.route('/')
-def home():
-    return render_template_string("""
-    <html>
-    <head>
-    <title>Taskora</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body class="bg-dark text-white text-center p-5">
-
-    <h1 class="display-4">🚀 Taskora</h1>
-    <p class="lead">Smart Productivity System for Students</p>
-
-    <div class="container mt-5">
-        <div class="row">
-
-            <div class="col-md-4">
-                <div class="card text-dark p-4">
-                    <h3>Free</h3>
-                    <p>5 Tasks Limit</p>
-                    <p>Basic Analytics</p>
-                    <p>Forever Free</p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card text-dark p-4 border border-success">
-                    <h3>Premium</h3>
-                    <p>Unlimited Tasks</p>
-                    <p>Advanced Analytics</p>
-                    <p>Daily Streak</p>
-                    <p>₹49/month</p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card text-dark p-4 border border-warning">
-                    <h3>Lifetime</h3>
-                    <p>All Premium Features</p>
-                    <p>No Monthly Fee</p>
-                    <p>₹499 One-Time</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <br><br>
-    <a href="/login" class="btn btn-primary">Login</a>
-    <a href="/register" class="btn btn-success">Register</a>
-
-    </body>
-    </html>
-    """)
-
-# ---------------- REGISTER ----------------
+def index():
+    return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        hashed_password = generate_password_hash(request.form['password'])
-        user = User(username=request.form['username'], password=hashed_password)
-        db.session.add(user)
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists.')
+            return redirect(url_for('register'))
+            
+        hashed_pw = generate_password_hash(password, method='sha256')
+        new_user = User(username=username, password=hashed_pw)
+        db.session.add(new_user)
         db.session.commit()
-        return redirect('/login')
-
-    return render_template_string("""
-    <h2>Register</h2>
-    <form method="POST">
-        <input name="username" required placeholder="Username"><br><br>
-        <input name="password" type="password" required placeholder="Password"><br><br>
-        <button>Register</button>
-    </form>
-    """)
-
-# ---------------- LOGIN ----------------
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and check_password_hash(user.password, request.form['password']):
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if user and check_password_hash(user.password, password):
             login_user(user)
-            return redirect('/dashboard')
-
-    return render_template_string("""
-    <h2>Login</h2>
-    <form method="POST">
-        <input name="username" required><br><br>
-        <input name="password" type="password" required><br><br>
-        <button>Login</button>
-    </form>
-    """)
-
-# ---------------- DASHBOARD ----------------
-
-@app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
-def dashboard():
-
-    tasks = Task.query.filter_by(user_id=current_user.id).all()
-
-    if request.method == 'POST':
-        if current_user.plan == "Free" and len(tasks) >= 5:
-            return "<h3>Free plan limit reached. Upgrade to Premium.</h3><a href='/subscribe'>Upgrade</a>"
-
-        task = Task(
-            content=request.form['task'],
-            due_date=request.form['due_date'],
-            due_time=request.form['due_time'],
-            priority=request.form['priority'],
-            category=request.form['category'],
-            focus_minutes=int(request.form['focus_minutes']),
-            created_date=str(datetime.today().date()),
-            user_id=current_user.id
-        )
-        db.session.add(task)
-        db.session.commit()
-
-    tasks = Task.query.filter_by(user_id=current_user.id).all()
-
-    total_tasks = len(tasks)
-    completed = len([t for t in tasks if t.status == "Completed"])
-    focus_total = sum([t.focus_minutes or 0 for t in tasks])
-    rate = round((completed / total_tasks) * 100, 2) if total_tasks > 0 else 0
-
-    return render_template_string("""
-    <h2>Welcome {{ current_user.username }}</h2>
-    <p><b>Plan:</b> {{ current_user.plan }}</p>
-
-    {% if current_user.plan == "Free" %}
-    <a href="/subscribe">Upgrade</a>
-    {% endif %}
-
-    <hr>
-
-    <h3>📊 Productivity Stats</h3>
-    Total Tasks: {{ total_tasks }} <br>
-    Completed: {{ completed }} <br>
-    Completion Rate: {{ rate }}% <br>
-    Focus Minutes: {{ focus_total }} <br>
-
-    {% if current_user.plan != "Free" %}
-    🔥 Streak: {{ current_user.streak }}
-    {% endif %}
-
-    <hr>
-
-    <form method="POST">
-        <input name="task" required placeholder="Task"><br><br>
-        <input type="date" name="due_date"><br><br>
-        <input type="time" name="due_time"><br><br>
-        <select name="priority">
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-        </select><br><br>
-        <input name="category" placeholder="Category"><br><br>
-        <input type="number" name="focus_minutes" placeholder="Focus Minutes"><br><br>
-        <button>Add Task</button>
-    </form>
-
-    <hr>
-
-    {% for task in tasks %}
-        <b>{{ task.content }}</b> |
-        {{ task.priority }} |
-        {{ task.category }} |
-        {{ task.status }}
-
-        {% if task.status == "Pending" %}
-        <a href="/complete/{{ task.id }}">Complete</a>
-        {% endif %}
-        | <a href="/delete/{{ task.id }}">Delete</a>
-        <br><br>
-    {% endfor %}
-
-    <a href="/logout">Logout</a>
-    """, tasks=tasks, total_tasks=total_tasks,
-       completed=completed, rate=rate,
-       focus_total=focus_total)
-
-# ---------------- COMPLETE ----------------
-
-@app.route('/complete/<int:id>')
-@login_required
-def complete(id):
-    task = Task.query.get(id)
-    task.status = "Completed"
-    if current_user.plan != "Free":
-        current_user.streak += 1
-    db.session.commit()
-    return redirect('/dashboard')
-
-# ---------------- SUBSCRIBE ----------------
-
-@app.route('/subscribe')
-@login_required
-def subscribe():
-    return """
-    <h2>Upgrade to Taskora 💎</h2>
-
-    <h3>Premium ₹49/month</h3>
-    <h3>Lifetime ₹499</h3>
-
-    <p>Pay via UPI:</p>
-    <b>7970583321@upi</b>
-
-    <br><br>
-
-    <a href="upi://pay?pa=7970583321@upi&pn=Taskora&am=49&cu=INR">
-        Pay ₹49 Now
-    </a>
-
-    <p>After payment, contact admin to activate your plan.</p>
-
-    <a href="/dashboard">Back</a>
-    """
-
-# ---------------- LOGOUT ----------------
+            
+            # Premium Feature: Update Streak on Login
+            today = date.today()
+            if user.last_login_date == today - timedelta(days=1):
+                user.current_streak += 1
+            elif user.last_login_date != today:
+                user.current_streak = 1 # Reset if they missed a day
+            user.last_login_date = today
+            db.session.commit()
+            
+            return redirect(url_for('dashboard'))
+        flash('Invalid credentials')
+    return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect('/')
+    return redirect(url_for('index'))
 
-# ---------------- RUN ----------------
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    query = Task.query.filter_by(user_id=current_user.id)
+    
+    # Premium Feature: Smart Focus & Search/Filter
+    if current_user.is_premium:
+        search_query = request.args.get('search')
+        focus_mode = request.args.get('focus')
+        
+        if search_query:
+            query = query.filter(Task.title.contains(search_query))
+        if focus_mode == 'true':
+            query = query.filter_by(priority='High')
 
-if __name__ == "__main__":
+    tasks = query.all()
+    
+    # Premium Feature: Analytics
+    total_tasks = len(tasks)
+    completed_tasks = len([t for t in tasks if t.is_completed])
+    completion_rate = round((completed_tasks / total_tasks * 100), 1) if total_tasks > 0 else 0
+
+    return render_template('dashboard.html', 
+                           tasks=tasks, 
+                           completion_rate=completion_rate)
+
+@app.route('/add_task', methods=['POST'])
+@login_required
+def add_task():
+    # FREE TIER LIMIT: Max 5 active tasks
+    active_tasks_count = Task.query.filter_by(user_id=current_user.id, is_completed=False).count()
+    
+    if not current_user.is_premium and active_tasks_count >= 5:
+        flash('Free limit reached (5 active tasks). Upgrade to Premium to add more!', 'warning')
+        return redirect(url_for('subscribe'))
+        
+    title = request.form.get('title')
+    priority = request.form.get('priority', 'Normal')
+    category = request.form.get('category', 'General')
+    
+    new_task = Task(title=title, priority=priority, category=category, user_id=current_user.id)
+    db.session.add(new_task)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/complete_task/<int:task_id>')
+@login_required
+def complete_task(task_id):
+    task = Task.query.get(task_id)
+    if task and task.user_id == current_user.id:
+        task.is_completed = not task.is_completed # Toggle completion
+        db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/subscribe', methods=['GET', 'POST'])
+@login_required
+def subscribe():
+    # Mock payment/upgrade route
+    if request.method == 'POST':
+        current_user.is_premium = True
+        db.session.commit()
+        flash('Welcome to Premium! 💎', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('subscribe.html')
+
+if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-
-
+    # Use port 5000 for local, Render will dynamically assign via environment variables
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

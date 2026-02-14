@@ -1,21 +1,47 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h2>Upgrade to Premium 💎</h2>
+<div class="max-w-xl mx-auto mt-10">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border text-center">
+        <span class="inline-block bg-purple-100 text-purple-800 font-bold px-4 py-1 rounded-full mb-6">TaskMaster Premium</span>
+        <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Level Up Your Productivity 💎</h2>
+        <p class="text-gray-600 mb-8 text-lg">Unlock the full power of your workflow with exclusive features designed for high achievers.</p>
+        
+        <ul class="text-left space-y-4 mb-8 max-w-sm mx-auto">
+            <li class="flex items-center text-gray-700"><span class="text-green-500 mr-3 text-xl">✅</span> Unlimited Active Tasks</li>
+            <li class="flex items-center text-gray-700"><span class="text-green-500 mr-3 text-xl">✅</span> Advanced Productivity Analytics</li>
+            <li class="flex items-center text-gray-700"><span class="text-green-500 mr-3 text-xl">✅</span> Daily Streak Counter</li>
+            <li class="flex items-center text-gray-700"><span class="text-green-500 mr-3 text-xl">✅</span> Task Search & Filter</li>
+            <li class="flex items-center text-gray-700"><span class="text-green-500 mr-3 text-xl">✅</span> Smart Focus Mode</li>
+        </ul>
 
-<div class="card p-4 bg-secondary">
-    <h4>Premium ₹49/month</h4>
-    <p>Unlimited tasks, streak tracking, advanced analytics</p>
+        <hr class="mb-8">
 
-    <h4>Lifetime ₹499</h4>
+        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-8 text-left">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Step 1: Make Payment</h3>
+            <p class="text-sm text-gray-600 mb-4">Open Google Pay, PhonePe, or Paytm and transfer the premium fee to the UPI ID below:</p>
+            
+            <div class="bg-white border-2 border-blue-200 rounded-xl p-4 flex items-center justify-between mb-4">
+                <div>
+                    <span class="block text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Official UPI ID</span>
+                    <span class="text-2xl font-mono font-bold text-gray-900">7970583321@upi</span>
+                </div>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" class="h-8 opacity-80">
+            </div>
+            
+            <p class="text-xs text-blue-800">Please ensure the transaction is successful before clicking the button below.</p>
+        </div>
 
-    <p>Pay via UPI:</p>
-    <b>7970583321@upi</b>
-
-    <br><br>
-
-    <a href="upi://pay?pa=7970583321@upi&pn=Taskora&am=49&cu=INR"
-       class="btn btn-success">
-       Pay ₹49 Now
-    </a>
+        <form action="{{ url_for('subscribe') }}" method="POST">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 text-left">Step 2: Activate Account</h3>
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-xl text-lg hover:opacity-90 shadow-lg transition transform hover:-translate-y-1">
+                I Have Paid — Upgrade My Account Now
+            </button>
+        </form>
+        
+        <p class="text-xs text-gray-400 mt-6 max-w-sm mx-auto">
+            *Note: As this is an indie project, upgrading via this button grants immediate access. Manual verification of the UPI transaction will occur on the backend.
+        </p>
+    </div>
 </div>
 {% endblock %}
