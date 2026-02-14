@@ -1,47 +1,46 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<h4>Welcome {{ current_user.username }}</h4>
-<p><b>Plan:</b> {{ current_user.plan }}</p>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-secondary p-3">
+            <h5>Total Tasks: {{ total }}</h5>
+            <h5>Completed: {{ completed }}</h5>
+        </div>
+    </div>
+</div>
 
-{% if current_user.plan == "Free" %}
-<a href="/subscribe" class="btn btn-warning btn-sm">Upgrade</a>
-{% endif %}
-
-<hr>
-
-<h5>Add Task</h5>
-<form method="POST">
+<form method="POST" class="mb-4">
     <input name="task" class="form-control mb-2" placeholder="Task" required>
     <input type="date" name="due_date" class="form-control mb-2">
-    <input type="time" name="due_time" class="form-control mb-2">
-
     <select name="priority" class="form-control mb-2">
         <option>Low</option>
         <option>Medium</option>
         <option>High</option>
     </select>
-
     <input name="category" class="form-control mb-2" placeholder="Category">
-    <input type="number" name="focus_minutes" class="form-control mb-2" placeholder="Focus Minutes">
-
     <button class="btn btn-primary">Add Task</button>
 </form>
 
-<hr>
-
-<h5>Your Tasks</h5>
 {% for task in tasks %}
-<div class="card p-3 mb-2">
-    <b>{{ task.content }}</b><br>
-    {{ task.priority }} | {{ task.category }} | {{ task.status }}
+<div class="card p-3 mb-2 bg-dark border-light">
+    <b>{{ task.content }}</b>
     <br>
-    <a href="/complete/{{ task.id }}" class="btn btn-success btn-sm">Complete</a>
-    <a href="/delete/{{ task.id }}" class="btn btn-danger btn-sm">Delete</a>
+    Priority:
+    <span class="badge bg-warning">{{ task.priority }}</span>
+    |
+    {{ task.category }}
+    |
+    {{ task.status }}
+
+    <div class="mt-2">
+        <a href="/complete/{{ task.id }}" class="btn btn-success btn-sm">Complete</a>
+        <a href="/delete/{{ task.id }}" class="btn btn-danger btn-sm">Delete</a>
+    </div>
 </div>
 {% endfor %}
 
 {% endblock %}
+
 
 

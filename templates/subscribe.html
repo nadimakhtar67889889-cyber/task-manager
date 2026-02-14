@@ -1,19 +1,21 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h2>Upgrade to Taskora 💎</h2>
+<h2>Upgrade to Premium 💎</h2>
 
-<h4>Premium – ₹49/month</h4>
-<h4>Lifetime – ₹499</h4>
+<div class="card p-4 bg-secondary">
+    <h4>Premium ₹49/month</h4>
+    <p>Unlimited tasks, streak tracking, advanced analytics</p>
 
-<p><b>UPI:</b> 7970583321@upi</p>
+    <h4>Lifetime ₹499</h4>
 
-<a href="upi://pay?pa=7970583321@upi&pn=Taskora&am=49&cu=INR" 
-   class="btn btn-success">
-   Pay ₹49 Now
-</a>
+    <p>Pay via UPI:</p>
+    <b>7970583321@upi</b>
 
-<p class="mt-3">
-After payment, contact admin for activation.
-</p>
+    <br><br>
+
+    <a href="upi://pay?pa=7970583321@upi&pn=Taskora&am=49&cu=INR"
+       class="btn btn-success">
+       Pay ₹49 Now
+    </a>
+</div>
 {% endblock %}

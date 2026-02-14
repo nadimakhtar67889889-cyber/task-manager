@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template_string, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -20,7 +21,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(200))
-    plan = db.Column(db.String(20), default="Free")
+    plan = db.Column(db.String(20), default="Free")  # Free, Premium, Lifetime
     streak = db.Column(db.Integer, default=0)
 
 class Task(db.Model):
@@ -44,10 +45,56 @@ def load_user(user_id):
 @app.route('/')
 def home():
     return render_template_string("""
-    <h1>🚀 Taskora</h1>
-    <p>Smart Productivity System</p>
-    <a href="/login">Login</a> |
-    <a href="/register">Register</a>
+    <html>
+    <head>
+    <title>Taskora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-dark text-white text-center p-5">
+
+    <h1 class="display-4">🚀 Taskora</h1>
+    <p class="lead">Smart Productivity System for Students</p>
+
+    <div class="container mt-5">
+        <div class="row">
+
+            <div class="col-md-4">
+                <div class="card text-dark p-4">
+                    <h3>Free</h3>
+                    <p>5 Tasks Limit</p>
+                    <p>Basic Analytics</p>
+                    <p>Forever Free</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-dark p-4 border border-success">
+                    <h3>Premium</h3>
+                    <p>Unlimited Tasks</p>
+                    <p>Advanced Analytics</p>
+                    <p>Daily Streak</p>
+                    <p>₹49/month</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-dark p-4 border border-warning">
+                    <h3>Lifetime</h3>
+                    <p>All Premium Features</p>
+                    <p>No Monthly Fee</p>
+                    <p>₹499 One-Time</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <br><br>
+    <a href="/login" class="btn btn-primary">Login</a>
+    <a href="/register" class="btn btn-success">Register</a>
+
+    </body>
+    </html>
     """)
 
 # ---------------- REGISTER ----------------
@@ -99,7 +146,7 @@ def dashboard():
 
     if request.method == 'POST':
         if current_user.plan == "Free" and len(tasks) >= 5:
-            return "<h3>Free plan allows only 5 tasks. Upgrade.</h3><a href='/subscribe'>Upgrade</a>"
+            return "<h3>Free plan limit reached. Upgrade to Premium.</h3><a href='/subscribe'>Upgrade</a>"
 
         task = Task(
             content=request.form['task'],
@@ -117,29 +164,28 @@ def dashboard():
     tasks = Task.query.filter_by(user_id=current_user.id).all()
 
     total_tasks = len(tasks)
-    completed_tasks = len([t for t in tasks if t.status == "Completed"])
-    total_focus = sum([t.focus_minutes or 0 for t in tasks])
-
-    completion_rate = 0
-    if total_tasks > 0:
-        completion_rate = round((completed_tasks / total_tasks) * 100, 2)
+    completed = len([t for t in tasks if t.status == "Completed"])
+    focus_total = sum([t.focus_minutes or 0 for t in tasks])
+    rate = round((completed / total_tasks) * 100, 2) if total_tasks > 0 else 0
 
     return render_template_string("""
     <h2>Welcome {{ current_user.username }}</h2>
-
     <p><b>Plan:</b> {{ current_user.plan }}</p>
+
     {% if current_user.plan == "Free" %}
-        <a href="/subscribe">Upgrade</a>
+    <a href="/subscribe">Upgrade</a>
     {% endif %}
 
-    <h3>Productivity Summary</h3>
-    Total Tasks: {{ total_tasks }}<br>
-    Completed: {{ completed_tasks }}<br>
-    Completion Rate: {{ completion_rate }}%<br>
-    Focus Minutes: {{ total_focus }}<br>
+    <hr>
+
+    <h3>📊 Productivity Stats</h3>
+    Total Tasks: {{ total_tasks }} <br>
+    Completed: {{ completed }} <br>
+    Completion Rate: {{ rate }}% <br>
+    Focus Minutes: {{ focus_total }} <br>
 
     {% if current_user.plan != "Free" %}
-        🔥 Streak: {{ current_user.streak }}
+    🔥 Streak: {{ current_user.streak }}
     {% endif %}
 
     <hr>
@@ -148,16 +194,13 @@ def dashboard():
         <input name="task" required placeholder="Task"><br><br>
         <input type="date" name="due_date"><br><br>
         <input type="time" name="due_time"><br><br>
-
         <select name="priority">
             <option>Low</option>
             <option>Medium</option>
             <option>High</option>
         </select><br><br>
-
         <input name="category" placeholder="Category"><br><br>
         <input type="number" name="focus_minutes" placeholder="Focus Minutes"><br><br>
-
         <button>Add Task</button>
     </form>
 
@@ -170,20 +213,16 @@ def dashboard():
         {{ task.status }}
 
         {% if task.status == "Pending" %}
-            <a href="/complete/{{ task.id }}">Complete</a>
+        <a href="/complete/{{ task.id }}">Complete</a>
         {% endif %}
-
         | <a href="/delete/{{ task.id }}">Delete</a>
         <br><br>
     {% endfor %}
 
     <a href="/logout">Logout</a>
-    """,
-    tasks=tasks,
-    total_tasks=total_tasks,
-    completed_tasks=completed_tasks,
-    total_focus=total_focus,
-    completion_rate=completion_rate)
+    """, tasks=tasks, total_tasks=total_tasks,
+       completed=completed, rate=rate,
+       focus_total=focus_total)
 
 # ---------------- COMPLETE ----------------
 
@@ -192,20 +231,8 @@ def dashboard():
 def complete(id):
     task = Task.query.get(id)
     task.status = "Completed"
-
     if current_user.plan != "Free":
         current_user.streak += 1
-
-    db.session.commit()
-    return redirect('/dashboard')
-
-# ---------------- DELETE ----------------
-
-@app.route('/delete/<int:id>')
-@login_required
-def delete(id):
-    task = Task.query.get(id)
-    db.session.delete(task)
     db.session.commit()
     return redirect('/dashboard')
 
@@ -229,7 +256,7 @@ def subscribe():
         Pay ₹49 Now
     </a>
 
-    <p>After payment, contact admin to activate.</p>
+    <p>After payment, contact admin to activate your plan.</p>
 
     <a href="/dashboard">Back</a>
     """
@@ -244,11 +271,10 @@ def logout():
 
 # ---------------- RUN ----------------
 
-import os
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 

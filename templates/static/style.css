@@ -1,0 +1,136 @@
+/* ---------------- GLOBAL ---------------- */
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    min-height: 100vh;
+    color: #ffffff;
+    transition: all 0.3s ease-in-out;
+}
+
+/* ---------------- NAVBAR ---------------- */
+
+.navbar {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ---------------- CARDS ---------------- */
+
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------- BUTTONS ---------------- */
+
+.btn-primary {
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
+    border: none;
+    border-radius: 30px;
+    padding: 8px 20px;
+    transition: 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0072ff, #00c6ff);
+    transform: scale(1.05);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #00ff87, #60efff);
+    border: none;
+    border-radius: 30px;
+}
+
+.btn-danger {
+    border-radius: 30px;
+}
+
+.btn-warning {
+    border-radius: 30px;
+}
+
+/* ---------------- BADGES ---------------- */
+
+.badge {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+/* ---------------- INPUT FIELDS ---------------- */
+
+input, select {
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 10px !important;
+    background: rgba(255,255,255,0.1) !important;
+    color: white !important;
+}
+
+input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+/* ---------------- DASHBOARD STATS ---------------- */
+
+.stats-card {
+    text-align: center;
+    padding: 20px;
+    border-radius: 20px;
+    background: linear-gradient(45deg, #1f4037, #99f2c8);
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+/* ---------------- PREMIUM GLOW ---------------- */
+
+.premium-badge {
+    background: linear-gradient(45deg, gold, orange);
+    color: black;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 0 15px gold;
+}
+
+/* ---------------- ANIMATIONS ---------------- */
+
+.fade-in {
+    animation: fadeIn 1s ease-in;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+/* ---------------- SCROLLBAR ---------------- */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(#00c6ff, #0072ff);
+    border-radius: 10px;
+}
+
+/* ---------------- HOVER EFFECT FOR TASK ---------------- */
+
+.task-card:hover {
+    border-left: 5px solid #00c6ff;
+    transition: 0.3s ease;
+}
